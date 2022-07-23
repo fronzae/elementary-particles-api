@@ -1,0 +1,47 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+  pre_build:
+    commands:
+      - cwd=$(pwd)
+      - echo Current path is $cwd
+      - REPOSITORY_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo Amazon ECR URI is $REPOSITORY_URI
+      - echo Pulling IBM SEMERU container image on `date`
+      - docker pull ibm-semeru-runtimes:open-17-jre-focal
+      - echo Cloning Open Liberty Git repository on `date`
+      - git clone https://github.com/OpenLiberty/ci.docker.git
+      - echo Create Open Liberty Dockerfile on `date`
+      - cd ./ci.docker/releases/latest/full
+      - cp Dockerfile.ubuntu.openjdk17 Dockerfile
+      - ls -ltr Dockerfile
+      - echo Building the Open Liberty container image on `date`
+      - docker build --no-cache -t $OLP_IMAGE_BASE:$OLP_IMAGE_TAG .
+      - docker tag $OLP_IMAGE_BASE:$OLP_IMAGE_TAG $REPOSITORY_URI/$OLP_IMAGE_BASE:$OLP_IMAGE_TAG
+      - echo Open Liberty container image build completed on `date`
+      - echo Logging in to Amazon ECR on `date`
+      - $(aws ecr get-login --region $AWS_REGION --no-include-email)
+      - echo Pushing the Open Liberty container image to Amazon ECR on `date`
+      - docker push $REPOSITORY_URI/$OLP_IMAGE_BASE:$OLP_IMAGE_TAG
+      - cd $cwd
+  build:
+    commands:
+      - echo Maven build started on `date`
+      - mvn clean install -DskipTests
+      - echo Maven build completed on `date`
+      - ls -ltr ./target
+      - echo Building the Sample Application Open Liberty container image on `date`
+      - docker build . -t $OLP_APP_IMAGE --build-arg ACCOUNT=$ACCOUNT_ID --build-arg REGION=$AWS_REGION --build-arg OLP_IMAGE=$OLP_IMAGE_BASE --build-arg OLP_TAG=$OLP_IMAGE_TAG --no-cache
+      - docker tag $OLP_APP_IMAGE:$OLP_APP_TAG $REPOSITORY_URI/$OLP_APP_IMAGE:$OLP_APP_TAG
+  post_build:
+    commands:    
+      - echo Open Liberty Sample Application container image build completed on `date`
+      - echo Logging in to Amazon ECR on `date`
+      - $(aws ecr get-login --region $AWS_REGION --no-include-email)
+      - echo Pushing the Open Liberty Sample Application container image to Amazon ECR on `date`
+      - docker push $REPOSITORY_URI/$OLP_APP_IMAGE:$OLP_APP_TAG
+artifacts:
+  files:
+    - target/elementary-particles-api.jar

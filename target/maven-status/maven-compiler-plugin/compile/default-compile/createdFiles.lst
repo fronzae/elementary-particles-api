@@ -1,0 +1,8 @@
+com\fronzae\particles\api\ElementaryParticlesApiApplication.class
+com\fronzae\particles\api\ElementaryParticlesController.class
+com\fronzae\particles\api\Particle.class
+com\fronzae\particles\api\Fermions.class
+com\fronzae\particles\api\GaugeBoson.class
+com\fronzae\particles\api\SubAtomicParticles.class
+com\fronzae\particles\api\Bosons.class
+com\fronzae\particles\api\ElementaryParticles.class
